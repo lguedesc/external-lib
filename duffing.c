@@ -10,6 +10,14 @@ int system_dimension() {
     return 2;
 }
 
+void error(void) {
+    printf("ERROR:\n");
+    printf("Wrong dimension allocated for the system of equations.\n");
+    printf("Please check the input file.\n");
+    printf("Exiting Program...\n");
+    exit(1);
+}
+
 void duffing(int dim, double *x, double t, double *par, double *f) {
     // OMEGA = par[0]
     // gamma = par[1]
@@ -32,12 +40,4 @@ void duffing(int dim, double *x, double t, double *par, double *f) {
     else {
         error();
     }    
-}
-
-void error(void) {
-    printf("ERROR:\n");
-    printf("Wrong dimension allocated for the system of equations.\n");
-    printf("Please check the input file.\n");
-    printf("Exiting Program...\n");
-    exit(1);
 }

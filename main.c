@@ -53,7 +53,7 @@ int main(void) {
     double t0 = 0;
     x[0] = -1; x[1] = 0;
     // Create output files to store results, create header and print initial conditions
-    FILE *out = fopen("output_rk4_dynlib.csv", "w");
+    FILE *out = fopen("output_rk4_dylib.csv", "w");
     write_results(out, dim, t0, x, 1);
     // Call numerical integrator
     for (double t = t0 + h; t < tf + h; t = t + h) {
