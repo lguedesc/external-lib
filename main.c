@@ -43,7 +43,7 @@ int main(void) {
     // Print start message
     printf("Program Started\n");
     // Program Parameters
-    double tf = 2000;
+    double tf = 500;
     double h = 0.001;
     // System Parameters
     double params[5] = { 1.6, 0.5, 0.025, -0.5, 0.5 };
