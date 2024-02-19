@@ -3,40 +3,72 @@
 #include <math.h>
 #include <time.h>
 #include "odesolvers.h"
-#include <dlfcn.h>
+
+#ifdef _WIN32
+    #include <windows.h>
+    #define LIB_EXT ".dll"
+#elif defined(__APPLE__) || defined(__MACH__)
+    #include <dlfcn.h>
+    #define LIB_EXT ".dylib"
+#else
+    #define LIB_EXT ".so"
+#endif
 
 void error(void);
-void (*dynsys)(int dim, double *x, double t, double *par, double *f);
 void write_results(FILE *output_file, int dim, double t, double *x, int mode);
 double time_of_execution(int mode, clock_t *start, clock_t *end);
 
-void (*load_dynsys(const char* lib_name, const char* func_name, void *lib))(int, double *, double, double *, double *) {
-    // Open dynamic library
-    lib = dlopen(lib_name, RTLD_LAZY);
-    if (!lib) {
-        // Handle error
-        fprintf(stderr, "%s\n", dlerror());
-        exit(EXIT_FAILURE);
+typedef void (*dynsys_t)(int, double *, double, double *, double *);
+
+dynsys_t load_dynsys(const char *lib_path, const char* sys_name) {
+    dynsys_t dynsys = NULL;
+
+#ifdef _WIN32
+    HINSTANCE hLib = LoadLibrary(lib_path);
+    if(hLib != NULL) {
+        dynsys = (dynsys_t) GetProcAddress(hLib, sys_name);
+        if (dynsys == NULL) {
+            printf("Error (a) loading function: %lu\n", GetLastError());
+            FreeLibrary(hLib);
+        }
     }
-    // Clear any existing error
-    dlerror();
-    // Get a pointer to the function in the shared library
-    *(void **) (&dynsys) = dlsym(lib, func_name);
-    const char *dlsym_error = dlerror();
-    if (dlsym_error) {
-        // Handle error
-        fprintf(stderr, "%s\n", dlsym_error);
-        exit(EXIT_FAILURE);
+    else {
+        printf("Error (b) loading function: %lu\n", GetLastError());
     }
+#else
+    void *handle = dlopen(lib_path, RTLD_LAZY);
+    if (handle != NULL) {
+        // Clear any existing error
+        dferror();
+        dynsys = (dynsys_t) dlsym(handle, sys_name);
+        char *error = dlerror();
+        if (error != NULL) {
+            printf("Error loading function: %s\n", error);
+            dlclose(handle);
+            dynsys = NULL;
+        }
+    }
+    else {
+        printf("Error loading library: %s\n", dlerror());
+    }
+#endif
 
     return dynsys;
 }
 
 int main(void) {
+    // Define paths
+    const char *lib_name = "duffing";
+    const char *sys_name = "duffing";
+    char lib_path[256];
+    sprintf(lib_path, "%s%s", lib_name, LIB_EXT);
     // Load shared library
     printf("Loading Shared Library.\n");
-    void *dylib = NULL;
-    dynsys = load_dynsys("duffing.dylib", "duffing", dylib);
+    dynsys_t dynsys = load_dynsys(lib_path, sys_name);
+    if (dynsys == NULL) {
+        printf("Failed to load dynsys function\n");
+        return 1;
+    }
     // Start counting time of execution
     clock_t t_start, t_end;
     double exectime = time_of_execution(1, &t_start, &t_end);
@@ -53,7 +85,7 @@ int main(void) {
     double t0 = 0;
     x[0] = -1; x[1] = 0;
     // Create output files to store results, create header and print initial conditions
-    FILE *out = fopen("output_rk4_dylib.csv", "w");
+    FILE *out = fopen("output_rk4_dylib_windows.csv", "w");
     write_results(out, dim, t0, x, 1);
     // Call numerical integrator
     for (double t = t0 + h; t < tf + h; t = t + h) {
@@ -64,7 +96,6 @@ int main(void) {
     // Close output file and free allocated memory
     fclose(out);
     free(x);
-    dlclose(dylib);
     // Stop counting time of execution and print end message
     exectime = time_of_execution(2, &t_start, &t_end);
     printf("Program ended successfully with %g seconds.\n", exectime);
