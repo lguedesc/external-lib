@@ -11,6 +11,7 @@
     #include <dlfcn.h>
     #define LIB_EXT ".dylib"
 #else
+    #include <dlfcn.h>
     #define LIB_EXT ".so"
 #endif
 
@@ -39,7 +40,7 @@ dynsys_t load_dynsys(const char *lib_path, const char* sys_name) {
     void *handle = dlopen(lib_path, RTLD_LAZY);
     if (handle != NULL) {
         // Clear any existing error
-        dferror();
+        dlerror();
         dynsys = (dynsys_t) dlsym(handle, sys_name);
         char *error = dlerror();
         if (error != NULL) {
@@ -62,6 +63,7 @@ int main(void) {
     const char *sys_name = "duffing";
     char lib_path[256];
     sprintf(lib_path, "%s%s", lib_name, LIB_EXT);
+    printf("lib_path = %s\n", lib_path);
     // Load shared library
     printf("Loading Shared Library.\n");
     dynsys_t dynsys = load_dynsys(lib_path, sys_name);
@@ -85,7 +87,7 @@ int main(void) {
     double t0 = 0;
     x[0] = -1; x[1] = 0;
     // Create output files to store results, create header and print initial conditions
-    FILE *out = fopen("output_rk4_dylib_windows.csv", "w");
+    FILE *out = fopen("output_rk4_dylib_linux.csv", "w");
     write_results(out, dim, t0, x, 1);
     // Call numerical integrator
     for (double t = t0 + h; t < tf + h; t = t + h) {
